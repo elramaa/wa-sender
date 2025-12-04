@@ -1,124 +1,171 @@
-# WhatsApp CLI Tool
+# WhatsApp Broadcast CLI
 
-A command-line application for sending WhatsApp messages using `whatsapp-web.js`.  
-Supports: persistent login, broadcast messaging, message templates, file-based messaging, delays, and logout.
+A simple command-line tool to automate sending WhatsApp messages (text and media) to multiple recipients using **whatsapp-web.js**.  
+Supports CSV/XLSX files, custom column mapping, message templates with placeholders, optional media attachments, and per-message delay.
+
+---
+
+## 📌 Features
+
+- Send message broadcasts via WhatsApp Web  
+- Supports **CSV** and **XLSX** input files  
+- Message templating using `{placeholder}` syntax  
+- Send **multiple media files** per message (separated by `|`)  
+- Customizable phone number column  
+- Customizable delay between messages  
+- Login/logout commands  
+- CLI confirmation before sending
 
 ---
 
 ## 📦 Installation
 
-```sh
-git clone <repository-url>
-cd <project-folder>
+1. Ensure you have **Node.js ≥ 16** installed.
+2. Install dependencies:
+
+```bash
 npm install
 ```
 
----
-
-## 📂 Folder Setup
-
-Make sure your folder looks like this:
+3. Prepare the following folder structure:
 
 ```
 .
-├── DATA/                # Put CSV/XLSX and media files here
-├── index.js
-└── README.md
-└── ... 
+├── DATA/
+│   ├── your_file.csv
+│   ├── your_media1.jpg
+│   ├── your_media2.pdf
+│   └── ...
+└── index.js
 ```
 
----
-
-## 🧠 Features
-
-- Persistent WhatsApp connection using LocalAuth
-- Broadcast messaging from CSV/XLSX
-- Dynamic message templating using `{field}`
-- Optional media sending
-- Safe delay between messages (to avoid spam blocking)
-- Logout command to remove stored authentication
+All CSV/XLSX and media files **must** be placed inside the `DATA/` folder.
 
 ---
 
-## 🚀 Commands
+## 🔐 Login to WhatsApp
 
-### 🔹 1. Login
+Before sending messages, you must login once.
 
-```sh
+```bash
 node index.js login
 ```
 
-- A QR code will be shown.
-- Scan with WhatsApp (Linked Devices menu).
-- After connected, the session will be saved automatically.
+This will:
+
+- Display a QR code  
+- Wait for you to scan it  
+- Save the session automatically  
+- Close the program when connected  
+
+You will **remain logged in** as long as the session folder is not deleted.
 
 ---
 
-### 🔹 2. Broadcast Messages
+## 🚪 Logout from WhatsApp
 
-```sh
-node index.js broadcast \
-  --file <filename> \
-  --message "<content>" \
-  --media <optional file> \
-  --delay <milliseconds>
-```
+To remove your WhatsApp session:
 
-#### Example:
-
-```sh
-node index.js broadcast \
-  --file participants.xlsx \
-  --message "Hello {name}, your number is {number}" \
-  --media poster.jpg \
-  --delay 2000
-```
-
-#### Supported formats:
-
-| Format | Status |
-|--------|--------|
-| `.csv` | ✔ Supported |
-| `.xlsx` | ✔ Supported |
-
-#### Required columns:
-
-| Column | Description |
-|--------|------------|
-| `name` | Receiver name |
-| `number` | WhatsApp number in international format (e.g., 6281234567890) |
-
----
-
-### 🧩 Message Templating
-
-Use fields from your file using `{columnName}`.
-
-**Example row:**
-
-| name | number |
-|------|--------|
-| Rama | 6281230001 |
-
-**Message:**
-
-```
-Hello {name}, your registered number is {number}.
-```
-
-**Output:**
-
-```
-Hello Rama, your registered number is 6281230001.
-```
-
----
-
-### 🔹 3. Logout
-
-```sh
+```bash
 node index.js logout
 ```
 
-- This deletes your saved WhatsApp session.
-- Next time you run login, you'll need to scan the QR again.
+This logs out and removes the authentication.
+
+---
+
+## 📤 Broadcasting Messages
+
+### Basic Usage
+
+```bash
+node index.js broadcast -f data.csv -m "Hello {name}" -d 5000
+```
+
+### Options
+
+| Option | Description | Required |
+|--------|-------------|----------|
+| `-f, --file <file>` | CSV/XLSX filename inside `DATA/` folder | ✔️ |
+| `-m, --message <message>` | Message text (supports `{placeholders}`) | ✔️ |
+| `--media <media>` | Send media files (separate with `|`) | ❌ |
+| `--phone_col <phone_col>` | Column name for phone numbers (default: `phone_number`) | ❌ |
+| `-d, --delay <delay>` | Delay between messages in ms (default: `5000`) | ✔️ |
+
+---
+
+## 📝 Example CSV Format
+
+Your CSV/XLSX file must include at least the phone column (default `phone_number`).  
+You may include any other columns for placeholders.
+
+```
+phone_number,name,order_id
+6281234567890,John,AB-115
+6289876543210,Sarah,ZX-228
+```
+
+---
+
+## 🧩 Using Message Templates
+
+You can insert any column value using `{column_name}`.
+
+Example:
+
+```bash
+-m "Hello {name}, your order {order_id} is ready."
+```
+
+---
+
+## 🖼 Sending Media
+
+You can send **one or multiple files**:
+
+```bash
+--media "image1.jpg|image2.png|file.pdf"
+```
+
+All files must be inside the `DATA/` folder.
+
+If you send multiple media files:
+
+- The **first** file will include the caption  
+- The rest are sent without caption
+
+---
+
+## 📚 Full Example Command
+
+```bash
+node index.js broadcast \
+-f customers.xlsx \
+-m "Hello {name}, thank you for your purchase {order_id}" \
+--media "promo.jpg|invoice.pdf" \
+--phone_col phone \
+-d 3000
+```
+
+---
+
+## ⚠️ Important Notes
+
+- WhatsApp may temporarily restrict accounts that send too many automated messages too quickly.  
+  Increase delay to reduce the risk.
+- Keep the `DATA/` folder organized and safe.
+- Do **not** close the terminal while sending messages.
+
+---
+
+## 📝 License
+
+This tool is for educational and personal use.  
+You are responsible for complying with WhatsApp’s terms of service.
+
+---
+
+## 👤 Author
+
+CLI Broadcast Tool — powered by `whatsapp-web.js`, `commander`, and `danfojs-node`.
+

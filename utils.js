@@ -1,5 +1,5 @@
-function cleanNumber(number) {
-  let cleanedNumber = number;
+function cleanNumber(num) {
+  let cleanedNumber = num;
   cleanedNumber = cleanedNumber
     .replace("'", "")
     .replace("+", "")

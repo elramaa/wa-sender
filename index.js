@@ -49,8 +49,20 @@ program
   .command("broadcast")
   .requiredOption("-f, --file <file>", "CSV file path to use in message")
   .requiredOption("-m, --message <message>", "Message content")
-  .option("--media <media>", "Media image/video/gif/etc")
-  .requiredOption("-d, --delay <delay>", "Delay between each send")
+  .option(
+    "--media <media>",
+    "Media image/video/gif/etc, separate with | to send multiple files"
+  )
+  .option(
+    "--phone_col <phone_col>",
+    "The name of phone number column (default: phone_number)",
+    "phone_number"
+  )
+  .requiredOption(
+    "-d, --delay <delay>",
+    "Delay between each send in ms (default: 5000ms)",
+    "5000"
+  )
   .action(async (options) => {
     if (!fs.existsSync("DATA/" + options.file)) {
       console.error(
@@ -59,22 +71,23 @@ program
       return;
     }
 
-    let whatsappMedia = null;
+    let whatsappMedia = [];
 
     if (options.media) {
-      const mediaPath = path.resolve("DATA/" + options.media);
-
-      if (!fs.existsSync(mediaPath)) {
-        console.error(
-          `Cannot find file ${options.media}, make sure you put it in the DATA folder inside this application`
-        );
-        return;
+      const pathList = options.media.split("|");
+      for (const p of pathList) {
+        const mediaPath = path.resolve("DATA/" + p);
+        if (!fs.existsSync(mediaPath)) {
+          console.error(
+            `Cannot find file ${p}, make sure you put it in the DATA folder inside this application`
+          );
+          return;
+        }
+        whatsappMedia.push(MessageMedia.fromFilePath(mediaPath));
       }
-
-      whatsappMedia = MessageMedia.fromFilePath(mediaPath);
     }
 
-    const fileExt = options.file.match(/\.([^.]+)$/)?.[1]?.toLowerCase();
+    const fileExt = options.file.match(/\.([^.]+)$/)[1].toLowerCase();
     const dataFile = path.resolve("DATA/" + options.file);
 
     let df = null;
@@ -85,13 +98,6 @@ program
     }
 
     const columns = df.columns;
-
-    if (!columns.includes("name") || !columns.includes("number")) {
-      console.log(
-        "Please make sure your file contain `name` and `number` column"
-      );
-      return;
-    }
 
     const data = dfd.toJSON(df, { format: "column" });
 
@@ -118,20 +124,29 @@ program
     }
 
     for (const [index, row] of data.entries()) {
-      const target = `${cleanNumber(row["number"])}@c.us`;
+      const target = `${cleanNumber(row[options.phone_col])}@c.us`;
       const message = parseMessage(options.message, row);
       try {
-        if (whatsappMedia) {
-          await whatsapp.sendMessage(target, whatsappMedia, {
+        if (whatsappMedia.length > 0) {
+          await whatsapp.sendMessage(target, whatsappMedia[0], {
             caption: message,
           });
+          for (let i = 1; i < whatsappMedia.length; ++i) {
+            await whatsapp.sendMessage(target, whatsappMedia[i]);
+          }
         } else {
           await whatsapp.sendMessage(target, message);
         }
-        console.log(`${index + 1}. Message sent to ${row["name"]}`);
+        console.log(
+          `${index + 1}. Message sent to number ${row[options.phone_col]}`
+        );
       } catch (err) {
         console.log(err);
-        console.log(`!${index + 1}. Message failed to send`);
+        console.log(
+          `!${index + 1}. Message to number ${
+            row[options.phone_col]
+          }failed to send`
+        );
       }
       await delaySend(Number(options.delay));
     }
