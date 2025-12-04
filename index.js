@@ -124,7 +124,7 @@ program
     }
 
     for (const [index, row] of data.entries()) {
-      const target = `${cleanNumber(row[options.phone_col])}@c.us`;
+      const target = `${cleanNumber(String(row[options.phone_col]))}@c.us`;
       const message = parseMessage(options.message, row);
       try {
         if (whatsappMedia.length > 0) {
@@ -145,7 +145,7 @@ program
         console.log(
           `!${index + 1}. Message to number ${
             row[options.phone_col]
-          }failed to send`
+          } failed to send`
         );
       }
       await delaySend(Number(options.delay));
